@@ -1,0 +1,721 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VF · Score 2+ Probability Analyser</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800&family=Inter:wght@400;500;600&display=swap');
+
+  :root {
+    --pitch: #0a2e1a;
+    --pitch-mid: #0f3d24;
+    --line: #1a5c38;
+    --accent: #00e676;
+    --accent-dim: #00b85a;
+    --amber: #ffab00;
+    --red: #ff5252;
+    --white: #f0f4f0;
+    --muted: #7a9a86;
+    --card: #0d3520;
+    --border: #1e5c38;
+    --shadow: rgba(0,230,118,0.08);
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--pitch);
+    color: var(--white);
+    font-family: 'Inter', sans-serif;
+    min-height: 100vh;
+    padding: 0 0 60px;
+  }
+
+  /* ── HEADER ── */
+  header {
+    background: var(--pitch-mid);
+    border-bottom: 2px solid var(--line);
+    padding: 20px 32px 18px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+  .logo-badge {
+    width: 48px; height: 48px;
+    background: var(--accent);
+    border-radius: 50%;
+    display: grid; place-items: center;
+    flex-shrink: 0;
+  }
+  .logo-badge svg { width: 28px; height: 28px; }
+  .header-text h1 {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 26px; font-weight: 800;
+    letter-spacing: 0.5px;
+    color: var(--white);
+    line-height: 1;
+  }
+  .header-text p {
+    font-size: 12px; color: var(--muted);
+    margin-top: 3px; letter-spacing: 0.3px;
+  }
+
+  /* ── MAIN LAYOUT ── */
+  .container { max-width: 1100px; margin: 0 auto; padding: 0 24px; }
+
+  /* ── FIXTURE BUILDER ── */
+  .builder-section {
+    margin-top: 32px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+  }
+  .section-head {
+    background: var(--pitch-mid);
+    border-bottom: 1px solid var(--border);
+    padding: 14px 20px;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .section-head .tag {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 11px; font-weight: 700; letter-spacing: 1.5px;
+    color: var(--accent); background: rgba(0,230,118,0.12);
+    padding: 3px 8px; border-radius: 4px;
+  }
+  .section-head h2 {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 18px; font-weight: 700; color: var(--white);
+    letter-spacing: 0.3px;
+  }
+  .fixture-counter {
+    margin-left: auto;
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 15px; font-weight: 600;
+    color: var(--muted);
+  }
+  .fixture-counter span { color: var(--accent); }
+
+  .fixture-rows { padding: 16px 20px; display: flex; flex-direction: column; gap: 10px; }
+
+  .fixture-row {
+    display: grid;
+    grid-template-columns: 28px 1fr 40px 1fr 36px;
+    align-items: center;
+    gap: 10px;
+  }
+  .row-num {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 14px; font-weight: 700;
+    color: var(--muted); text-align: right;
+  }
+  select {
+    background: var(--pitch);
+    border: 1px solid var(--border);
+    border-radius: 7px;
+    color: var(--white);
+    font-family: 'Inter', sans-serif;
+    font-size: 13px;
+    padding: 9px 12px;
+    cursor: pointer;
+    appearance: none;
+    -webkit-appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%237a9a86' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 10px center;
+    padding-right: 30px;
+    transition: border-color 0.18s;
+    width: 100%;
+  }
+  select:focus { outline: none; border-color: var(--accent); }
+  select option { background: #0f2818; }
+
+  .vs-label {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 13px; font-weight: 700;
+    color: var(--muted); text-align: center;
+    letter-spacing: 1px;
+  }
+
+  .clear-row {
+    background: none; border: none;
+    cursor: pointer; padding: 6px;
+    color: var(--muted); border-radius: 5px;
+    transition: color 0.15s, background 0.15s;
+    display: grid; place-items: center;
+  }
+  .clear-row:hover { color: var(--red); background: rgba(255,82,82,0.1); }
+
+  /* ── ACTION BAR ── */
+  .actions {
+    padding: 16px 20px;
+    border-top: 1px solid var(--border);
+    display: flex; gap: 10px; flex-wrap: wrap;
+    align-items: center;
+  }
+  .btn {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 14px; font-weight: 700; letter-spacing: 0.5px;
+    padding: 10px 22px;
+    border-radius: 7px; border: none; cursor: pointer;
+    transition: all 0.18s; display: inline-flex; align-items: center; gap: 7px;
+  }
+  .btn-primary {
+    background: var(--accent); color: #001a09;
+  }
+  .btn-primary:hover { background: var(--accent-dim); }
+  .btn-primary:disabled { background: var(--line); color: var(--muted); cursor: not-allowed; }
+  .btn-ghost {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--muted);
+  }
+  .btn-ghost:hover { border-color: var(--muted); color: var(--white); }
+
+  .hint { margin-left: auto; font-size: 12px; color: var(--muted); }
+
+  /* ── RESULTS GRID ── */
+  .results-section {
+    margin-top: 28px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+    display: none;
+  }
+  .results-section.visible { display: block; }
+
+  .results-toolbar {
+    background: var(--pitch-mid);
+    border-bottom: 1px solid var(--border);
+    padding: 12px 20px;
+    display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  }
+  .sort-label {
+    font-size: 12px; color: var(--muted); font-weight: 500;
+  }
+  .sort-btns { display: flex; gap: 6px; flex-wrap: wrap; }
+  .sort-btn {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 12px; font-weight: 700; letter-spacing: 0.4px;
+    padding: 5px 12px; border-radius: 5px; cursor: pointer;
+    border: 1px solid var(--border);
+    background: transparent; color: var(--muted);
+    transition: all 0.15s;
+    display: inline-flex; align-items: center; gap: 5px;
+  }
+  .sort-btn:hover { border-color: var(--muted); color: var(--white); }
+  .sort-btn.active { background: rgba(0,230,118,0.12); border-color: var(--accent); color: var(--accent); }
+  .sort-dir { font-size: 10px; }
+
+  .btn-reset {
+    margin-left: auto;
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 12px; font-weight: 700; letter-spacing: 0.4px;
+    padding: 5px 14px; border-radius: 5px; cursor: pointer;
+    border: 1px solid var(--border);
+    background: transparent; color: var(--muted);
+    transition: all 0.15s;
+  }
+  .btn-reset:hover { border-color: var(--amber); color: var(--amber); }
+
+  /* ── TABLE ── */
+  .table-wrap { overflow-x: auto; }
+
+  table {
+    width: 100%; border-collapse: collapse;
+    font-size: 13.5px;
+  }
+  thead tr {
+    background: rgba(0,0,0,0.25);
+    border-bottom: 2px solid var(--line);
+  }
+  th {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 11px; font-weight: 700; letter-spacing: 1.2px;
+    color: var(--muted); text-transform: uppercase;
+    padding: 12px 16px; text-align: left;
+    white-space: nowrap;
+    cursor: pointer; user-select: none;
+    transition: color 0.15s;
+  }
+  th:hover { color: var(--white); }
+  th.th-active { color: var(--accent); }
+  th.num { text-align: center; }
+
+  tbody tr {
+    border-bottom: 1px solid rgba(30,92,56,0.4);
+    transition: background 0.12s;
+  }
+  tbody tr:last-child { border-bottom: none; }
+  tbody tr:hover { background: rgba(0,230,118,0.04); }
+
+  td { padding: 13px 16px; vertical-align: middle; }
+  td.num { text-align: center; }
+
+  .fixture-num {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 13px; font-weight: 700;
+    color: var(--muted); text-align: center;
+  }
+
+  .team-name {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 15px; font-weight: 700;
+    letter-spacing: 0.3px;
+  }
+  .team-home { color: var(--white); }
+  .team-away { color: #b0ccc0; }
+
+  .matchup-cell {
+    display: flex; align-items: center; gap: 8px;
+  }
+  .vs-chip {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 10px; font-weight: 700; letter-spacing: 1px;
+    color: var(--muted);
+    background: rgba(122,154,134,0.15);
+    padding: 2px 5px; border-radius: 3px;
+  }
+
+  /* Probability bar cell */
+  .prob-cell {
+    min-width: 130px;
+  }
+  .prob-bar-wrap {
+    display: flex; align-items: center; gap: 10px;
+  }
+  .prob-fraction {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 14px; font-weight: 700;
+    min-width: 30px;
+    color: var(--white);
+  }
+  .bar-track {
+    flex: 1; height: 6px;
+    background: rgba(255,255,255,0.08);
+    border-radius: 3px; overflow: hidden;
+  }
+  .bar-fill {
+    height: 100%; border-radius: 3px;
+    transition: width 0.4s ease;
+  }
+  .prob-pct {
+    font-size: 11px; color: var(--muted);
+    min-width: 34px; text-align: right;
+  }
+
+  /* color tiers */
+  .tier-0 { background: var(--muted); }
+  .tier-25 { background: #4db6ac; }
+  .tier-50 { background: var(--amber); }
+  .tier-75 { background: #ff8a65; }
+  .tier-100 { background: var(--accent); }
+
+  /* ── EMPTY / ERROR STATES ── */
+  .empty-state {
+    padding: 48px 20px;
+    text-align: center;
+    color: var(--muted);
+    font-size: 14px;
+    display: none;
+  }
+  .empty-state.visible { display: block; }
+  .empty-state strong { display: block; font-size: 16px; color: var(--white); margin-bottom: 6px; }
+
+  /* ── TOAST ── */
+  #toast {
+    position: fixed; bottom: 28px; right: 28px;
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 8px; padding: 12px 18px;
+    font-size: 13px; color: var(--white);
+    box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+    transform: translateY(80px); opacity: 0;
+    transition: all 0.25s ease;
+    z-index: 999;
+  }
+  #toast.show { transform: translateY(0); opacity: 1; }
+  #toast.error { border-color: var(--red); }
+
+  @media (max-width: 640px) {
+    header { padding: 16px; }
+    .fixture-row { grid-template-columns: 20px 1fr 30px 1fr 30px; gap: 6px; }
+    th, td { padding: 10px 10px; }
+    .prob-bar-wrap .bar-track { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo-badge">
+    <svg viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="14" cy="14" r="12" stroke="#001a09" stroke-width="2"/>
+      <path d="M14 3 L17 10 L24 10 L18.5 14.5 L20.5 22 L14 17.5 L7.5 22 L9.5 14.5 L4 10 L11 10 Z" fill="#001a09"/>
+    </svg>
+  </div>
+  <div class="header-text">
+    <h1>VIRTUAL FOOTBALL · SCORE 2+ ANALYSER</h1>
+    <p>Premier League · Historical Probability Data</p>
+  </div>
+</header>
+
+<div class="container">
+
+  <!-- FIXTURE BUILDER -->
+  <div class="builder-section">
+    <div class="section-head">
+      <span class="tag">STEP 1</span>
+      <h2>Select Fixtures</h2>
+      <span class="fixture-counter"><span id="filledCount">0</span> / 10 added</span>
+    </div>
+
+    <div class="fixture-rows" id="fixtureRows">
+      <!-- rows injected by JS -->
+    </div>
+
+    <div class="actions">
+      <button class="btn btn-primary" id="analyseBtn" disabled>
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2 7h10M7 2v10" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        Analyse Fixtures
+      </button>
+      <button class="btn btn-ghost" id="clearAllBtn">Clear All</button>
+      <span class="hint">Select home & away team for each fixture</span>
+    </div>
+  </div>
+
+  <!-- RESULTS -->
+  <div class="results-section" id="resultsSection">
+    <div class="results-toolbar">
+      <span class="sort-label">SORT BY:</span>
+      <div class="sort-btns" id="sortBtns">
+        <button class="sort-btn active" data-col="fixture" data-dir="asc">
+          # <span class="sort-dir">↑</span>
+        </button>
+        <button class="sort-btn" data-col="home" data-dir="asc">
+          Home Team <span class="sort-dir">↑</span>
+        </button>
+        <button class="sort-btn" data-col="away" data-dir="asc">
+          Away Team <span class="sort-dir">↑</span>
+        </button>
+        <button class="sort-btn" data-col="homeProb" data-dir="desc">
+          Home 2+ % <span class="sort-dir">↓</span>
+        </button>
+        <button class="sort-btn" data-col="awayProb" data-dir="desc">
+          Away 2+ % <span class="sort-dir">↓</span>
+        </button>
+        <button class="sort-btn" data-col="combined" data-dir="desc">
+          Combined <span class="sort-dir">↓</span>
+        </button>
+      </div>
+      <button class="btn-reset" id="resetGridBtn">↺ Reset Order</button>
+    </div>
+
+    <div class="table-wrap">
+      <table id="resultsTable">
+        <thead>
+          <tr>
+            <th class="num" data-col="fixture">#</th>
+            <th data-col="home">Home Team</th>
+            <th data-col="homeProb" class="num">Home 2+ Prob</th>
+            <th data-col="away">Away Team</th>
+            <th data-col="awayProb" class="num">Away 2+ Prob</th>
+            <th data-col="combined" class="num">Combined</th>
+          </tr>
+        </thead>
+        <tbody id="resultsBody"></tbody>
+      </table>
+    </div>
+
+    <div class="empty-state" id="emptyState">
+      <strong>No matching fixtures found</strong>
+      The selected team combination doesn't exist in the dataset.
+    </div>
+  </div>
+
+</div>
+
+<div id="toast"></div>
+
+<script>
+// ─── DATA ───────────────────────────────────────────────────────────────────
+const RAW = [{"HomeTeam":"ARS","AwayTeam":"ASV","HomeTeam 2+ Goals Probability":"2/4","AwayTeam 2+ Goals Probability":"0/4"},{"HomeTeam":"ARS","AwayTeam":"BOU","HomeTeam 2+ Goals Probability":"3/4","AwayTeam 2+ Goals Probability":"0/4"},{"HomeTeam":"ARS","AwayTeam":"BRI","HomeTeam 2+ Goals Probability":"1/4","AwayTeam 2+ Goals Probability":"2/4"},{"HomeTeam":"ARS","AwayTeam":"BRN","HomeTeam 2+ Goals Probability":"3/4","AwayTeam 2+ Goals Probability":"0/4"},{"HomeTeam":"ARS","AwayTeam":"BUR","HomeTeam 2+ Goals Probability":"3/4","AwayTeam 2+ Goals Probability":"1/4"},{"HomeTeam":"ARS","AwayTeam":"CHE","HomeTeam 2+ Goals Probability":"1/4","AwayTeam 2+ Goals Probability":"3/4"},{"HomeTeam":"ARS","AwayTeam":"CRY","HomeTeam 2+ Goals Probability":"2/4","AwayTeam 2+ Goals Probability":"1/4"},{"HomeTeam":"ARS","AwayTeam":"EVE","HomeTeam 2+ Goals Probability":"3/4","AwayTeam 2+ Goals Probability":"0/4"},{"HomeTeam":"ARS","AwayTeam":"FOR","HomeTeam 2+ Goals Probability":"2/4","AwayTeam 2+ Goals Probability":"2/4"},{"HomeTeam":"ARS","AwayTeam":"FUL","HomeTeam 2+ Goals Probability":"3/4","AwayTeam 2+ Goals Probability":"1/4"},{"HomeTeam":"ARS","AwayTeam":"LEE","HomeTeam 2+ Goals Probability":"3/4","AwayTeam 2+ Goals Probability":"1/4"},{"HomeTeam":"ARS","AwayTeam":"LIV","HomeTeam 2+ Goals Probability":"0/4","AwayTeam 2+ Goals Probability":"2/4"},{"HomeTeam":"ARS","AwayTeam":"MNC","HomeTeam 2+ Goals Probability":"1/4","AwayTeam 2+ Goals Probability":"2/4"},{"HomeTeam":"ARS","AwayTeam":"MNU","HomeTeam 2+ Goals Probability":"3/4","AwayTeam 2+ Goals Probability":"2/4"},{"HomeTeam":"ARS","AwayTeam":"NWC","HomeTeam 2+ Goals Probability":"1/4","AwayTeam 2+ Goals Probability":"1/4"},{"HomeTeam":"ARS","AwayTeam":"SUN","HomeTeam 2+ Goals Probability":"4/4","AwayTeam 2+ Goals Probability":"0/4"},{"HomeTeam":"ARS","AwayTeam":"TOT","HomeTeam 2+ Goals Probability":"3/4","AwayTeam 2+ Goals Probability":"0/4"},{"HomeTeam":"ARS","AwayTeam":"WHU","HomeTeam 2+ Goals Probability":"2/4","AwayTeam 2+ Goals Probability":"2/4"},{"HomeTeam":"ARS","AwayTeam":"WOL","HomeTeam 2+ Goals Probability":"4/4","AwayTeam 2+ Goals Probability":"0/4"},{"HomeTeam":"ASV","AwayTeam":"ARS","HomeTeam 2+ Goals Probability":"1/4","AwayTeam 2+ Goals Probability":"3/4"},{"HomeTeam":"ASV","AwayTeam":"BOU","HomeTeam 2+ Goals Probability":"2/4","AwayTeam 2+ Goals Probability":"1/4"},{"HomeTeam":"ASV","AwayTeam":"BRI","HomeTeam 2+ Goals Probability":"1/4","AwayTeam 2+ Goals Probability":"1/4"},{"HomeTeam":"ASV","AwayTeam":"BRN","HomeTeam 2+ Goals Probability":"1/4","AwayTeam 2+ Goals Probability":"1/4"},{"HomeTeam":"ASV","AwayTeam":"BUR","HomeTeam 2+ Goals Probability":"3/4","AwayTeam 2+ Goals Probability":"0/4"},{"HomeTeam":"ASV","AwayTeam":"CHE","HomeTeam 2+ Goals Probability":"1/4","AwayTeam 2+ Goals Probability":"3/4"},{"HomeTeam":"ASV","AwayTeam":"CRY","HomeTeam 2+ Goals Probability":"2/4","AwayTeam 2+ Goals Probability":"1/4"},{"HomeTeam":"ASV","AwayTeam":"EVE","HomeTeam 2+ Goals Probability":"1/4","AwayTeam 2+ Goals Probability":"1/4"},{"HomeTeam":"ASV","AwayTeam":"FOR","HomeTeam 2+ Goals Probability":"2/4","AwayTeam 2+ Goals Probability":"0/4"},{"HomeTeam":"ASV","AwayTeam":"FUL","HomeTeam 2+ Goals Probability":"2/4","AwayTeam 2+ Goals Probability":"1/4"},{"HomeTeam":"ASV","AwayTeam":"LEE","HomeTeam 2+ Goals Probability":"1/4","AwayTeam 2+ Goals Probability":"1/4"},{"HomeTeam":"ASV","AwayTeam":"LIV","HomeTeam 2+ Goals Probability":"1/4","AwayTeam 2+ Goals Probability":"2/4"},{"HomeTeam":"ASV","AwayTeam":"MNC","HomeTeam 2+ Goals Probability":"0/4","AwayTeam 2+ Goals Probability":"2/4"},{"HomeTeam":"ASV","AwayTeam":"MNU","HomeTeam 2+ Goals Probability":"2/4","AwayTeam 2+ Goals Probability":"2/4"},{"HomeTeam":"ASV","AwayTeam":"NWC","HomeTeam 2+ Goals Probability":"3/4","AwayTeam 2+ Goals Probability":"2/4"},{"HomeTeam":"ASV","AwayTeam":"SUN","HomeTeam 2+ Goals Probability":"1/4","AwayTeam 2+ Goals Probability":"1/4"},{"HomeTeam":"ASV","AwayTeam":"TOT","HomeTeam 2+ Goals Probability":"2/4","AwayTeam 2+ Goals Probability":"4/4"},{"HomeTeam":"ASV","AwayTeam":"WHU","HomeTeam 2+ Goals Probability":"3/4","AwayTeam 2+ Goals Probability":"1/4"},{"HomeTeam":"ASV","AwayTeam":"WOL","HomeTeam 2+ Goals Probability":"1/4","AwayTeam 2+ Goals Probability":"1/4"},{"HomeTeam":"BOU","AwayTeam":"ARS","HomeTeam 2+ Goals Probability":"0/4","AwayTeam 2+ Goals Probability":"4/4"},{"HomeTeam":"BOU","AwayTeam":"ASV","HomeTeam 2+ Goals Probability":"1/4","AwayTeam 2+ Goals Probability":"2/4"},{"HomeTeam":"BOU","AwayTeam":"BRI","HomeTeam 2+ Goals Probability":"0/4","AwayTeam 2+ Goals Probability":"2/4"},{"HomeTeam":"BOU","AwayTeam":"BRN","HomeTeam 2+ Goals Probability":"2/4","AwayTeam 2+ Goals Probability":"1/4"},{"HomeTeam":"BOU","AwayTeam":"BUR","HomeTeam 2+ Goals Probability":"2/4","AwayTeam 2+ Goals Probability":"1/4"},{"HomeTeam":"BOU","AwayTeam":"CHE","HomeTeam 2+ Goals Probability":"1/4","AwayTeam 2+ Goals Probability":"2/4"},{"HomeTeam":"BOU","AwayTeam":"CRY","HomeTeam 2+ Goals Probability":"2/4","AwayTeam 2+ Goals Probability":"0/4"},{"HomeTeam":"BOU","AwayTeam":"EVE","HomeTeam 2+ Goals Probability":"1/4","AwayTeam 2+ Goals Probability":"1/4"},{"HomeTeam":"BOU","AwayTeam":"FOR","HomeTeam 2+ Goals Probability":"2/4","AwayTeam 2+ Goals Probability":"1/4"},{"HomeTeam":"BOU","AwayTeam":"FUL","HomeTeam 2+ Goals Probability":"2/4","AwayTeam 2+ Goals Probability":"2/4"},{"HomeTeam":"BOU","AwayTeam":"LEE","HomeTeam 2+ Goals Probability":"2/4","AwayTeam 2+ Goals Probability":"2/4"},{"HomeTeam":"BOU","AwayTeam":"LIV","HomeTeam 2+ Goals Probability":"0/4","AwayTeam 2+ Goals Probability":"2/4"},{"HomeTeam":"BOU","AwayTeam":"MNC","HomeTeam 2+ Goals Probability":"2/4","AwayTeam 2+ Goals Probability":"3/4"},{"HomeTeam":"BOU","AwayTeam":"MNU","HomeTeam 2+ Goals Probability":"0/4","AwayTeam 2+ Goals Probability":"3/4"},{"HomeTeam":"BOU","AwayTeam":"NWC","HomeTeam 2+ Goals Probability":"1/4","AwayTeam 2+ Goals Probability":"1/4"},{"HomeTeam":"BOU","AwayTeam":"SUN","HomeTeam 2+ Goals Probability":"2/4","AwayTeam 2+ Goals Probability":"0/4"},{"HomeTeam":"BOU","AwayTeam":"TOT","HomeTeam 2+ Goals Probability":"2/4","AwayTeam 2+ Goals Probability":"2/4"},{"HomeTeam":"BOU","AwayTeam":"WHU","HomeTeam 2+ Goals Probability":"3/4","AwayTeam 2+ Goals Probability":"0/4"},{"HomeTeam":"BOU","AwayTeam":"WOL","HomeTeam 2+ Goals Probability":"3/4","AwayTeam 2+ Goals Probability":"1/4"},{"HomeTeam":"BRI","AwayTeam":"ARS","HomeTeam 2+ Goals Probability":"3/4","AwayTeam 2+ Goals Probability":"1/4"},{"HomeTeam":"BRI","AwayTeam":"ASV","HomeTeam 2+ Goals Probability":"2/4","AwayTeam 2+ Goals Probability":"0/4"},{"HomeTeam":"BRI","AwayTeam":"BOU","HomeTeam 2+ Goals Probability":"2/4","AwayTeam 2+ Goals Probability":"2/4"},{"HomeTeam":"BRI","AwayTeam":"BRN","HomeTeam 2+ Goals Probability":"4/4","AwayTeam 2+ Goals Probability":"2/4"},{"HomeTeam":"BRI","AwayTeam":"BUR","HomeTeam 2+ Goals Probability":"3/4","AwayTeam 2+ Goals Probability":"0/4"},{"HomeTeam":"BRI","AwayTeam":"CHE","HomeTeam 2+ Goals Probability":"1/4","AwayTeam 2+ Goals Probability":"1/4"},{"HomeTeam":"BRI","AwayTeam":"CRY","HomeTeam 2+ Goals Probability":"2/4","AwayTeam 2+ Goals Probability":"2/4"},{"HomeTeam":"BRI","AwayTeam":"EVE","HomeTeam 2+ Goals Probability":"3/4","AwayTeam 2+ Goals Probability":"0/4"},{"HomeTeam":"BRI","AwayTeam":"FOR","HomeTeam 2+ Goals Probability":"4/4","AwayTeam 2+ Goals Probability":"2/4"},{"HomeTeam":"BRI","AwayTeam":"FUL","HomeTeam 2+ Goals Probability":"1/4","AwayTeam 2+ Goals Probability":"1/4"},{"HomeTeam":"BRI","AwayTeam":"LEE","HomeTeam 2+ Goals Probability":"3/4","AwayTeam 2+ Goals Probability":"1/4"},{"HomeTeam":"BRI","AwayTeam":"LIV","HomeTeam 2+ Goals Probability":"0/4","AwayTeam 2+ Goals Probability":"1/4"},{"HomeTeam":"BRI","AwayTeam":"MNC","HomeTeam 2+ Goals Probability":"1/4","AwayTeam 2+ Goals Probability":"3/4"},{"HomeTeam":"BRI","AwayTeam":"MNU","HomeTeam 2+ Goals Probability":"1/4","AwayTeam 2+ Goals Probability":"4/4"},{"HomeTeam":"BRI","AwayTeam":"NWC","HomeTeam 2+ Goals Probability":"1/4","AwayTeam 2+ Goals Probability":"2/4"},{"HomeTeam":"BRI","AwayTeam":"SUN","HomeTeam 2+ Goals Probability":"3/4","AwayTeam 2+ Goals Probability":"1/4"},{"HomeTeam":"BRI","AwayTeam":"TOT","HomeTeam 2+ Goals Probability":"2/4","AwayTeam 2+ Goals Probability":"1/4"},{"HomeTeam":"BRI","AwayTeam":"WHU","HomeTeam 2+ Goals Probability":"0/4","AwayTeam 2+ Goals Probability":"0/4"},{"HomeTeam":"BRI","AwayTeam":"WOL","HomeTeam 2+ Goals Probability":"1/4","AwayTeam 2+ Goals Probability":"2/4"},{"HomeTeam":"BRN","AwayTeam":"ARS","HomeTeam 2+ Goals Probability":"1/4","AwayTeam 2+ Goals Probability":"3/4"},{"HomeTeam":"BRN","AwayTeam":"ASV","HomeTeam 2+ Goals Probability":"2/4","AwayTeam 2+ Goals Probability":"0/4"},{"HomeTeam":"BRN","AwayTeam":"BOU","HomeTeam 2+ Goals Probability":"2/4","AwayTeam 2+ Goals Probability":"1/4"},{"HomeTeam":"BRN","AwayTeam":"BRI","HomeTeam 2+ Goals Probability":"2/4","AwayTeam 2+ Goals Probability":"0/4"},{"HomeTeam":"BRN","AwayTeam":"BUR","HomeTeam 2+ Goals Probability":"4/4","AwayTeam 2+ Goals Probability":"1/4"},{"HomeTeam":"BRN","AwayTeam":"CHE","HomeTeam 2+ Goals Probability":"0/4","AwayTeam 2+ Goals Probability":"1/4"},{"HomeTeam":"BRN","AwayTeam":"CRY","HomeTeam 2+ Goals Probability":"1/4","AwayTeam 2+ Goals Probability":"1/4"},{"HomeTeam":"BRN","AwayTeam":"EVE","HomeTeam 2+ Goals Probability":"1/4","AwayTeam 2+ Goals Probability":"1/4"},{"HomeTeam":"BRN","AwayTeam":"FOR","HomeTeam 2+ Goals Probability":"1/4","AwayTeam 2+ Goals Probability":"0/4"},{"HomeTeam":"BRN","AwayTeam":"FUL","HomeTeam 2+ Goals Probability":"1/4","AwayTeam 2+ Goals Probability":"1/4"},{"HomeTeam":"BRN","AwayTeam":"LEE","HomeTeam 2+ Goals Probability":"2/4","AwayTeam 2+ Goals Probability":"1/4"},{"HomeTeam":"BRN","AwayTeam":"LIV","HomeTeam 2+ Goals Probability":"2/4","AwayTeam 2+ Goals Probability":"1/4"},{"HomeTeam":"BRN","AwayTeam":"MNC","HomeTeam 2+ Goals Probability":"2/4","AwayTeam 2+ Goals Probability":"2/4"},{"HomeTeam":"BRN","AwayTeam":"MNU","HomeTeam 2+ Goals Probability":"3/4","AwayTeam 2+ Goals Probability":"3/4"},{"HomeTeam":"BRN","AwayTeam":"NWC","HomeTeam 2+ Goals Probability":"0/4","AwayTeam 2+ Goals Probability":"1/4"},{"HomeTeam":"BRN","AwayTeam":"SUN","HomeTeam 2+ Goals Probability":"2/4","AwayTeam 2+ Goals Probability":"1/4"},{"HomeTeam":"BRN","AwayTeam":"TOT","HomeTeam 2+ Goals Probability":"0/4","AwayTeam 2+ Goals Probability":"2/4"},{"HomeTeam":"BRN","AwayTeam":"WHU","HomeTeam 2+ Goals Probability":"3/4","AwayTeam 2+ Goals Probability":"0/4"},{"HomeTeam":"BRN","AwayTeam":"WOL","HomeTeam 2+ Goals Probability":"2/4","AwayTeam 2+ Goals Probability":"0/4"},{"HomeTeam":"BUR","AwayTeam":"ARS","HomeTeam 2+ Goals Probability":"1/4","AwayTeam 2+ Goals Probability":"1/4"},{"HomeTeam":"BUR","AwayTeam":"ASV","HomeTeam 2+ Goals Probability":"0/4","AwayTeam 2+ Goals Probability":"2/4"},{"HomeTeam":"BUR","AwayTeam":"BOU","HomeTeam 2+ Goals Probability":"2/4","AwayTeam 2+ Goals Probability":"2/4"},{"HomeTeam":"BUR","AwayTeam":"BRI","HomeTeam 2+ Goals Probability":"1/4","AwayTeam 2+ Goals Probability":"2/4"},{"HomeTeam":"BUR","AwayTeam":"BRN","HomeTeam 2+ Goals Probability":"1/4","AwayTeam 2+ Goals Probability":"1/4"},{"HomeTeam":"BUR","AwayTeam":"CHE","HomeTeam 2+ Goals Probability":"1/4","AwayTeam 2+ Goals Probability":"2/4"},{"HomeTeam":"BUR","AwayTeam":"CRY","HomeTeam 2+ Goals Probability":"1/4","AwayTeam 2+ Goals Probability":"1/4"},{"HomeTeam":"BUR","AwayTeam":"EVE","HomeTeam 2+ Goals Probability":"0/4","AwayTeam 2+ Goals Probability":"1/4"},{"HomeTeam":"BUR","AwayTeam":"FOR","HomeTeam 2+ Goals Probability":"0/4","AwayTeam 2+ Goals Probability":"0/4"},{"HomeTeam":"BUR","AwayTeam":"FUL","HomeTeam 2+ Goals Probability":"1/4","AwayTeam 2+ Goals Probability":"3/4"},{"HomeTeam":"BUR","AwayTeam":"LEE","HomeTeam 2+ Goals Probability":"2/4","AwayTeam 2+ Goals Probability":"1/4"},{"HomeTeam":"BUR","AwayTeam":"LIV","HomeTeam 2+ Goals Probability":"0/4","AwayTeam 2+ Goals Probability":"3/4"},{"HomeTeam":"BUR","AwayTeam":"MNC","HomeTeam 2+ Goals Probability":"0/4","AwayTeam 2+ Goals Probability":"4/4"},{"HomeTeam":"BUR","AwayTeam":"MNU","HomeTeam 2+ Goals Probability":"2/4","AwayTeam 2+ Goals Probability":"1/4"},{"HomeTeam":"BUR","AwayTeam":"NWC","HomeTeam 2+ Goals Probability":"0/4","AwayTeam 2+ Goals Probability":"2/4"},{"HomeTeam":"BUR","AwayTeam":"SUN","HomeTeam 2+ Goals Probability":"4/4","AwayTeam 2+ Goals Probability":"2/4"},{"HomeTeam":"BUR","AwayTeam":"TOT","HomeTeam 2+ Goals Probability":"3/4","AwayTeam 2+ Goals Probability":"3/4"},{"HomeTeam":"BUR","AwayTeam":"WHU","HomeTeam 2+ Goals Probability":"2/4","AwayTeam 2+ Goals Probability":"3/4"},{"HomeTeam":"BUR","AwayTeam":"WOL","HomeTeam 2+ Goals Probability":"2/4","AwayTeam 2+ Goals Probability":"2/4"},{"HomeTeam":"CHE","AwayTeam":"ARS","HomeTeam 2+ Goals Probability":"1/4","AwayTeam 2+ Goals Probability":"3/4"},{"HomeTeam":"CHE","AwayTeam":"ASV","HomeTeam 2+ Goals Probability":"0/4","AwayTeam 2+ Goals Probability":"1/4"},{"HomeTeam":"CHE","AwayTeam":"BOU","HomeTeam 2+ Goals Probability":"1/4","AwayTeam 2+ Goals Probability":"0/4"},{"HomeTeam":"CHE","AwayTeam":"BRI","HomeTeam 2+ Goals Probability":"1/4","AwayTeam 2+ Goals Probability":"3/4"},{"HomeTeam":"CHE","AwayTeam":"BRN","HomeTeam 2+ Goals Probability":"2/4","AwayTeam 2+ Goals Probability":"2/4"},{"HomeTeam":"CHE","AwayTeam":"BUR","HomeTeam 2+ Goals Probability":"3/4","AwayTeam 2+ Goals Probability":"0/4"},{"HomeTeam":"CHE","AwayTeam":"CRY","HomeTeam 2+ Goals Probability":"1/4","AwayTeam 2+ Goals Probability":"2/4"},{"HomeTeam":"CHE","AwayTeam":"EVE","HomeTeam 2+ Goals Probability":"4/4","AwayTeam 2+ Goals Probability":"1/4"},{"HomeTeam":"CHE","AwayTeam":"FOR","HomeTeam 2+ Goals Probability":"3/4","AwayTeam 2+ Goals Probability":"1/4"},{"HomeTeam":"CHE","AwayTeam":"FUL","HomeTeam 2+ Goals Probability":"3/4","AwayTeam 2+ Goals Probability":"2/4"},{"HomeTeam":"CHE","AwayTeam":"LEE","HomeTeam 2+ Goals Probability":"2/4","AwayTeam 2+ Goals Probability":"1/4"},{"HomeTeam":"CHE","AwayTeam":"LIV","HomeTeam 2+ Goals Probability":"2/4","AwayTeam 2+ Goals Probability":"1/4"},{"HomeTeam":"CHE","AwayTeam":"MNC","HomeTeam 2+ Goals Probability":"1/4","AwayTeam 2+ Goals Probability":"3/4"},{"HomeTeam":"CHE","AwayTeam":"MNU","HomeTeam 2+ Goals Probability":"1/4","AwayTeam 2+ Goals Probability":"2/4"},{"HomeTeam":"CHE","AwayTeam":"NWC","HomeTeam 2+ Goals Probability":"2/4","AwayTeam 2+ Goals Probability":"0/4"},{"HomeTeam":"CHE","AwayTeam":"SUN","HomeTeam 2+ Goals Probability":"4/4","AwayTeam 2+ Goals Probability":"1/4"},{"HomeTeam":"CHE","AwayTeam":"TOT","HomeTeam 2+ Goals Probability":"2/4","AwayTeam 2+ Goals Probability":"3/4"},{"HomeTeam":"CHE","AwayTeam":"WHU","HomeTeam 2+ Goals Probability":"1/4","AwayTeam 2+ Goals Probability":"1/4"},{"HomeTeam":"CHE","AwayTeam":"WOL","HomeTeam 2+ Goals Probability":"3/4","AwayTeam 2+ Goals Probability":"1/4"},{"HomeTeam":"CRY","AwayTeam":"ARS","HomeTeam 2+ Goals Probability":"1/4","AwayTeam 2+ Goals Probability":"2/4"},{"HomeTeam":"CRY","AwayTeam":"ASV","HomeTeam 2+ Goals Probability":"2/4","AwayTeam 2+ Goals Probability":"2/4"},{"HomeTeam":"CRY","AwayTeam":"BOU","HomeTeam 2+ Goals Probability":"2/4","AwayTeam 2+ Goals Probability":"0/4"},{"HomeTeam":"CRY","AwayTeam":"BRI","HomeTeam 2+ Goals Probability":"2/4","AwayTeam 2+ Goals Probability":"4/4"},{"HomeTeam":"CRY","AwayTeam":"BRN","HomeTeam 2+ Goals Probability":"0/4","AwayTeam 2+ Goals Probability":"3/4"},{"HomeTeam":"CRY","AwayTeam":"BUR","HomeTeam 2+ Goals Probability":"2/4","AwayTeam 2+ Goals Probability":"2/4"},{"HomeTeam":"CRY","AwayTeam":"CHE","HomeTeam 2+ Goals Probability":"2/4","AwayTeam 2+ Goals Probability":"1/4"},{"HomeTeam":"CRY","AwayTeam":"EVE","HomeTeam 2+ Goals Probability":"1/4","AwayTeam 2+ Goals Probability":"0/4"},{"HomeTeam":"CRY","AwayTeam":"FOR","HomeTeam 2+ Goals Probability":"3/4","AwayTeam 2+ Goals Probability":"1/4"},{"HomeTeam":"CRY","AwayTeam":"FUL","HomeTeam 2+ Goals Probability":"1/4","AwayTeam 2+ Goals Probability":"1/4"},{"HomeTeam":"CRY","AwayTeam":"LEE","HomeTeam 2+ Goals Probability":"1/4","AwayTeam 2+ Goals Probability":"1/4"},{"HomeTeam":"CRY","AwayTeam":"LIV","HomeTeam 2+ Goals Probability":"0/4","AwayTeam 2+ Goals Probability":"1/4"},{"HomeTeam":"CRY","AwayTeam":"MNC","HomeTeam 2+ Goals Probability":"2/4","AwayTeam 2+ Goals Probability":"1/4"},{"HomeTeam":"CRY","AwayTeam":"MNU","HomeTeam 2+ Goals Probability":"1/4","AwayTeam 2+ Goals Probability":"1/4"},{"HomeTeam":"CRY","AwayTeam":"NWC","HomeTeam 2+ Goals Probability":"2/4","AwayTeam 2+ Goals Probability":"1/4"},{"HomeTeam":"CRY","AwayTeam":"SUN","HomeTeam 2+ Goals Probability":"2/4","AwayTeam 2+ Goals Probability":"1/4"},{"HomeTeam":"CRY","AwayTeam":"TOT","HomeTeam 2+ Goals Probability":"3/4","AwayTeam 2+ Goals Probability":"1/4"},{"HomeTeam":"CRY","AwayTeam":"WHU","HomeTeam 2+ Goals Probability":"2/4","AwayTeam 2+ Goals Probability":"1/4"},{"HomeTeam":"CRY","AwayTeam":"WOL","HomeTeam 2+ Goals Probability":"1/4","AwayTeam 2+ Goals Probability":"2/4"},{"HomeTeam":"EVE","AwayTeam":"ARS","HomeTeam 2+ Goals Probability":"1/4","AwayTeam 2+ Goals Probability":"4/4"},{"HomeTeam":"EVE","AwayTeam":"ASV","HomeTeam 2+ Goals Probability":"1/4","AwayTeam 2+ Goals Probability":"2/4"},{"HomeTeam":"EVE","AwayTeam":"BOU","HomeTeam 2+ Goals Probability":"2/4","AwayTeam 2+ Goals Probability":"2/4"},{"HomeTeam":"EVE","AwayTeam":"BRI","HomeTeam 2+ Goals Probability":"2/4","AwayTeam 2+ Goals Probability":"1/4"},{"HomeTeam":"EVE","AwayTeam":"BRN","HomeTeam 2+ Goals Probability":"0/4","AwayTeam 2+ Goals Probability":"3/4"},{"HomeTeam":"EVE","AwayTeam":"BUR","HomeTeam 2+ Goals Probability":"1/4","AwayTeam 2+ Goals Probability":"0/4"},{"HomeTeam":"EVE","AwayTeam":"CHE","HomeTeam 2+ Goals Probability":"2/4","AwayTeam 2+ Goals Probability":"0/4"},{"HomeTeam":"EVE","AwayTeam":"CRY","HomeTeam 2+ Goals Probability":"3/4","AwayTeam 2+ Goals Probability":"2/4"},{"HomeTeam":"EVE","AwayTeam":"FOR","HomeTeam 2+ Goals Probability":"3/4","AwayTeam 2+ Goals Probability":"2/4"},{"HomeTeam":"EVE","AwayTeam":"FUL","HomeTeam 2+ Goals Probability":"2/4","AwayTeam 2+ Goals Probability":"3/4"},{"HomeTeam":"EVE","AwayTeam":"LEE","HomeTeam 2+ Goals Probability":"1/4","AwayTeam 2+ Goals Probability":"1/4"},{"HomeTeam":"EVE","AwayTeam":"LIV","HomeTeam 2+ Goals Probability":"1/4","AwayTeam 2+ Goals Probability":"3/4"},{"HomeTeam":"EVE","AwayTeam":"MNC","HomeTeam 2+ Goals Probability":"1/4","AwayTeam 2+ Goals Probability":"3/4"},{"HomeTeam":"EVE","AwayTeam":"MNU","HomeTeam 2+ Goals Probability":"1/4","AwayTeam 2+ Goals Probability":"3/4"},{"HomeTeam":"EVE","AwayTeam":"NWC","HomeTeam 2+ Goals Probability":"0/4","AwayTeam 2+ Goals Probability":"0/4"},{"HomeTeam":"EVE","AwayTeam":"SUN","HomeTeam 2+ Goals Probability":"2/4","AwayTeam 2+ Goals Probability":"1/4"},{"HomeTeam":"EVE","AwayTeam":"TOT","HomeTeam 2+ Goals Probability":"3/4","AwayTeam 2+ Goals Probability":"1/4"},{"HomeTeam":"EVE","AwayTeam":"WHU","HomeTeam 2+ Goals Probability":"2/4","AwayTeam 2+ Goals Probability":"2/4"},{"HomeTeam":"EVE","AwayTeam":"WOL","HomeTeam 2+ Goals Probability":"2/4","AwayTeam 2+ Goals Probability":"2/4"},{"HomeTeam":"FOR","AwayTeam":"ARS","HomeTeam 2+ Goals Probability":"1/4","AwayTeam 2+ Goals Probability":"3/4"},{"HomeTeam":"FOR","AwayTeam":"ASV","HomeTeam 2+ Goals Probability":"1/4","AwayTeam 2+ Goals Probability":"1/4"},{"HomeTeam":"FOR","AwayTeam":"BOU","HomeTeam 2+ Goals Probability":"1/4","AwayTeam 2+ Goals Probability":"1/4"},{"HomeTeam":"FOR","AwayTeam":"BRI","HomeTeam 2+ Goals Probability":"0/4","AwayTeam 2+ Goals Probability":"1/4"},{"HomeTeam":"FOR","AwayTeam":"BRN","HomeTeam 2+ Goals Probability":"3/4","AwayTeam 2+ Goals Probability":"1/4"},{"HomeTeam":"FOR","AwayTeam":"BUR","HomeTeam 2+ Goals Probability":"2/4","AwayTeam 2+ Goals Probability":"2/4"},{"HomeTeam":"FOR","AwayTeam":"CHE","HomeTeam 2+ Goals Probability":"2/4","AwayTeam 2+ Goals Probability":"2/4"},{"HomeTeam":"FOR","AwayTeam":"CRY","HomeTeam 2+ Goals Probability":"3/4","AwayTeam 2+ Goals Probability":"1/4"},{"HomeTeam":"FOR","AwayTeam":"EVE","HomeTeam 2+ Goals Probability":"2/4","AwayTeam 2+ Goals Probability":"2/4"},{"HomeTeam":"FOR","AwayTeam":"FUL","HomeTeam 2+ Goals Probability":"1/4","AwayTeam 2+ Goals Probability":"1/4"},{"HomeTeam":"FOR","AwayTeam":"LEE","HomeTeam 2+ Goals Probability":"1/4","AwayTeam 2+ Goals Probability":"0/4"},{"HomeTeam":"FOR","AwayTeam":"LIV","HomeTeam 2+ Goals Probability":"2/4","AwayTeam 2+ Goals Probability":"4/4"},{"HomeTeam":"FOR","AwayTeam":"MNC","HomeTeam 2+ Goals Probability":"1/4","AwayTeam 2+ Goals Probability":"2/4"},{"HomeTeam":"FOR","AwayTeam":"MNU","HomeTeam 2+ Goals Probability":"2/4","AwayTeam 2+ Goals Probability":"1/4"},{"HomeTeam":"FOR","AwayTeam":"NWC","HomeTeam 2+ Goals Probability":"0/4","AwayTeam 2+ Goals Probability":"4/4"},{"HomeTeam":"FOR","AwayTeam":"SUN","HomeTeam 2+ Goals Probability":"1/4","AwayTeam 2+ Goals Probability":"1/4"},{"HomeTeam":"FOR","AwayTeam":"TOT","HomeTeam 2+ Goals Probability":"0/4","AwayTeam 2+ Goals Probability":"0/4"},{"HomeTeam":"FOR","AwayTeam":"WHU","HomeTeam 2+ Goals Probability":"0/4","AwayTeam 2+ Goals Probability":"2/4"},{"HomeTeam":"FOR","AwayTeam":"WOL","HomeTeam 2+ Goals Probability":"1/4","AwayTeam 2+ Goals Probability":"2/4"},{"HomeTeam":"FUL","AwayTeam":"ARS","HomeTeam 2+ Goals Probability":"1/4","AwayTeam 2+ Goals Probability":"3/4"},{"HomeTeam":"FUL","AwayTeam":"ASV","HomeTeam 2+ Goals Probability":"3/4","AwayTeam 2+ Goals Probability":"2/4"},{"HomeTeam":"FUL","AwayTeam":"BOU","HomeTeam 2+ Goals Probability":"1/4","AwayTeam 2+ Goals Probability":"0/4"},{"HomeTeam":"FUL","AwayTeam":"BRI","HomeTeam 2+ Goals Probability":"1/4","AwayTeam 2+ Goals Probability":"2/4"},{"HomeTeam":"FUL","AwayTeam":"BRN","HomeTeam 2+ Goals Probability":"1/4","AwayTeam 2+ Goals Probability":"1/4"},{"HomeTeam":"FUL","AwayTeam":"BUR","HomeTeam 2+ Goals Probability":"2/4","AwayTeam 2+ Goals Probability":"1/4"},{"HomeTeam":"FUL","AwayTeam":"CHE","HomeTeam 2+ Goals Probability":"2/4","AwayTeam 2+ Goals Probability":"1/4"},{"HomeTeam":"FUL","AwayTeam":"CRY","HomeTeam 2+ Goals Probability":"2/4","AwayTeam 2+ Goals Probability":"1/4"},{"HomeTeam":"FUL","AwayTeam":"EVE","HomeTeam 2+ Goals Probability":"2/4","AwayTeam 2+ Goals Probability":"0/4"},{"HomeTeam":"FUL","AwayTeam":"FOR","HomeTeam 2+ Goals Probability":"2/4","AwayTeam 2+ Goals Probability":"1/4"},{"HomeTeam":"FUL","AwayTeam":"LEE","HomeTeam 2+ Goals Probability":"3/4","AwayTeam 2+ Goals Probability":"1/4"},{"HomeTeam":"FUL","AwayTeam":"LIV","HomeTeam 2+ Goals Probability":"3/4","AwayTeam 2+ Goals Probability":"1/4"},{"HomeTeam":"FUL","AwayTeam":"MNC","HomeTeam 2+ Goals Probability":"1/4","AwayTeam 2+ Goals Probability":"1/4"},{"HomeTeam":"FUL","AwayTeam":"MNU","HomeTeam 2+ Goals Probability":"3/4","AwayTeam 2+ Goals Probability":"3/4"},{"HomeTeam":"FUL","AwayTeam":"NWC","HomeTeam 2+ Goals Probability":"1/4","AwayTeam 2+ Goals Probability":"2/4"},{"HomeTeam":"FUL","AwayTeam":"SUN","HomeTeam 2+ Goals Probability":"2/4","AwayTeam 2+ Goals Probability":"0/4"},{"HomeTeam":"FUL","AwayTeam":"TOT","HomeTeam 2+ Goals Probability":"1/4","AwayTeam 2+ Goals Probability":"3/4"},{"HomeTeam":"FUL","AwayTeam":"WHU","HomeTeam 2+ Goals Probability":"1/4","AwayTeam 2+ Goals Probability":"3/4"},{"HomeTeam":"FUL","AwayTeam":"WOL","HomeTeam 2+ Goals Probability":"2/4","AwayTeam 2+ Goals Probability":"2/4"},{"HomeTeam":"LEE","AwayTeam":"ARS","HomeTeam 2+ Goals Probability":"1/4","AwayTeam 2+ Goals Probability":"2/4"},{"HomeTeam":"LEE","AwayTeam":"ASV","HomeTeam 2+ Goals Probability":"3/4","AwayTeam 2+ Goals Probability":"1/4"},{"HomeTeam":"LEE","AwayTeam":"BOU","HomeTeam 2+ Goals Probability":"2/4","AwayTeam 2+ Goals Probability":"0/4"},{"HomeTeam":"LEE","AwayTeam":"BRI","HomeTeam 2+ Goals Probability":"3/4","AwayTeam 2+ Goals Probability":"3/4"},{"HomeTeam":"LEE","AwayTeam":"BRN","HomeTeam 2+ Goals Probability":"2/4","AwayTeam 2+ Goals Probability":"0/4"},{"HomeTeam":"LEE","AwayTeam":"BUR","HomeTeam 2+ Goals Probability":"2/4","AwayTeam 2+ Goals Probability":"2/4"},{"HomeTeam":"LEE","AwayTeam":"CHE","HomeTeam 2+ Goals Probability":"1/4","AwayTeam 2+ Goals Probability":"0/4"},{"HomeTeam":"LEE","AwayTeam":"CRY","HomeTeam 2+ Goals Probability":"1/4","AwayTeam 2+ Goals Probability":"1/4"},{"HomeTeam":"LEE","AwayTeam":"EVE","HomeTeam 2+ Goals Probability":"3/4","AwayTeam 2+ Goals Probability":"2/4"},{"HomeTeam":"LEE","AwayTeam":"FOR","HomeTeam 2+ Goals Probability":"1/4","AwayTeam 2+ Goals Probability":"1/4"},{"HomeTeam":"LEE","AwayTeam":"FUL","HomeTeam 2+ Goals Probability":"1/4","AwayTeam 2+ Goals Probability":"0/4"},{"HomeTeam":"LEE","AwayTeam":"LIV","HomeTeam 2+ Goals Probability":"1/4","AwayTeam 2+ Goals Probability":"2/4"},{"HomeTeam":"LEE","AwayTeam":"MNC","HomeTeam 2+ Goals Probability":"0/4","AwayTeam 2+ Goals Probability":"2/4"},{"HomeTeam":"LEE","AwayTeam":"MNU","HomeTeam 2+ Goals Probability":"2/4","AwayTeam 2+ Goals Probability":"2/4"},{"HomeTeam":"LEE","AwayTeam":"NWC","HomeTeam 2+ Goals Probability":"1/4","AwayTeam 2+ Goals Probability":"2/4"},{"HomeTeam":"LEE","AwayTeam":"SUN","HomeTeam 2+ Goals Probability":"3/4","AwayTeam 2+ Goals Probability":"2/4"},{"HomeTeam":"LEE","AwayTeam":"TOT","HomeTeam 2+ Goals Probability":"2/4","AwayTeam 2+ Goals Probability":"1/4"},{"HomeTeam":"LEE","AwayTeam":"WHU","HomeTeam 2+ Goals Probability":"2/4","AwayTeam 2+ Goals Probability":"1/4"},{"HomeTeam":"LEE","AwayTeam":"WOL","HomeTeam 2+ Goals Probability":"2/4","AwayTeam 2+ Goals Probability":"1/4"},{"HomeTeam":"LIV","AwayTeam":"ARS","HomeTeam 2+ Goals Probability":"0/4","AwayTeam 2+ Goals Probability":"1/4"},{"HomeTeam":"LIV","AwayTeam":"ASV","HomeTeam 2+ Goals Probability":"3/4","AwayTeam 2+ Goals Probability":"0/4"},{"HomeTeam":"LIV","AwayTeam":"BOU","HomeTeam 2+ Goals Probability":"4/4","AwayTeam 2+ Goals Probability":"2/4"},{"HomeTeam":"LIV","AwayTeam":"BRI","HomeTeam 2+ Goals Probability":"3/4","AwayTeam 2+ Goals Probability":"2/4"},{"HomeTeam":"LIV","AwayTeam":"BRN","HomeTeam 2+ Goals Probability":"2/4","AwayTeam 2+ Goals Probability":"4/4"},{"HomeTeam":"LIV","AwayTeam":"BUR","HomeTeam 2+ Goals Probability":"4/4","AwayTeam 2+ Goals Probability":"1/4"},{"HomeTeam":"LIV","AwayTeam":"CHE","HomeTeam 2+ Goals Probability":"2/4","AwayTeam 2+ Goals Probability":"1/4"},{"HomeTeam":"LIV","AwayTeam":"CRY","HomeTeam 2+ Goals Probability":"3/4","AwayTeam 2+ Goals Probability":"1/4"},{"HomeTeam":"LIV","AwayTeam":"EVE","HomeTeam 2+ Goals Probability":"3/4","AwayTeam 2+ Goals Probability":"1/4"},{"HomeTeam":"LIV","AwayTeam":"FOR","HomeTeam 2+ Goals Probability":"1/4","AwayTeam 2+ Goals Probability":"2/4"},{"HomeTeam":"LIV","AwayTeam":"FUL","HomeTeam 2+ Goals Probability":"4/4","AwayTeam 2+ Goals Probability":"1/4"},{"HomeTeam":"LIV","AwayTeam":"LEE","HomeTeam 2+ Goals Probability":"3/4","AwayTeam 2+ Goals Probability":"2/4"},{"HomeTeam":"LIV","AwayTeam":"MNC","HomeTeam 2+ Goals Probability":"2/4","AwayTeam 2+ Goals Probability":"1/4"},{"HomeTeam":"LIV","AwayTeam":"MNU","HomeTeam 2+ Goals Probability":"2/4","AwayTeam 2+ Goals Probability":"1/4"},{"HomeTeam":"LIV","AwayTeam":"NWC","HomeTeam 2+ Goals Probability":"2/4","AwayTeam 2+ Goals Probability":"1/4"},{"HomeTeam":"LIV","AwayTeam":"SUN","HomeTeam 2+ Goals Probability":"3/4","AwayTeam 2+ Goals Probability":"1/4"},{"HomeTeam":"LIV","AwayTeam":"TOT","HomeTeam 2+ Goals Probability":"1/4","AwayTeam 2+ Goals Probability":"0/4"},{"HomeTeam":"LIV","AwayTeam":"WHU","HomeTeam 2+ Goals Probability":"2/4","AwayTeam 2+ Goals Probability":"2/4"},{"HomeTeam":"LIV","AwayTeam":"WOL","HomeTeam 2+ Goals Probability":"1/4","AwayTeam 2+ Goals Probability":"1/4"},{"HomeTeam":"MNC","AwayTeam":"ARS","HomeTeam 2+ Goals Probability":"2/4","AwayTeam 2+ Goals Probability":"2/4"},{"HomeTeam":"MNC","AwayTeam":"ASV","HomeTeam 2+ Goals Probability":"2/4","AwayTeam 2+ Goals Probability":"1/4"},{"HomeTeam":"MNC","AwayTeam":"BOU","HomeTeam 2+ Goals Probability":"4/4","AwayTeam 2+ Goals Probability":"0/4"},{"HomeTeam":"MNC","AwayTeam":"BRI","HomeTeam 2+ Goals Probability":"1/4","AwayTeam 2+ Goals Probability":"1/4"},{"HomeTeam":"MNC","AwayTeam":"BRN","HomeTeam 2+ Goals Probability":"0/4","AwayTeam 2+ Goals Probability":"0/4"},{"HomeTeam":"MNC","AwayTeam":"BUR","HomeTeam 2+ Goals Probability":"4/4","AwayTeam 2+ Goals Probability":"1/4"},{"HomeTeam":"MNC","AwayTeam":"CHE","HomeTeam 2+ Goals Probability":"2/4","AwayTeam 2+ Goals Probability":"0/4"},{"HomeTeam":"MNC","AwayTeam":"CRY","HomeTeam 2+ Goals Probability":"4/4","AwayTeam 2+ Goals Probability":"1/4"},{"HomeTeam":"MNC","AwayTeam":"EVE","HomeTeam 2+ Goals Probability":"2/4","AwayTeam 2+ Goals Probability":"1/4"},{"HomeTeam":"MNC","AwayTeam":"FOR","HomeTeam 2+ Goals Probability":"2/4","AwayTeam 2+ Goals Probability":"0/4"},{"HomeTeam":"MNC","AwayTeam":"FUL","HomeTeam 2+ Goals Probability":"3/4","AwayTeam 2+ Goals Probability":"2/4"},{"HomeTeam":"MNC","AwayTeam":"LEE","HomeTeam 2+ Goals Probability":"3/4","AwayTeam 2+ Goals Probability":"0/4"},{"HomeTeam":"MNC","AwayTeam":"LIV","HomeTeam 2+ Goals Probability":"1/4","AwayTeam 2+ Goals Probability":"2/4"},{"HomeTeam":"MNC","AwayTeam":"MNU","HomeTeam 2+ Goals Probability":"2/4","AwayTeam 2+ Goals Probability":"0/4"},{"HomeTeam":"MNC","AwayTeam":"NWC","HomeTeam 2+ Goals Probability":"4/4","AwayTeam 2+ Goals Probability":"1/4"},{"HomeTeam":"MNC","AwayTeam":"SUN","HomeTeam 2+ Goals Probability":"4/4","AwayTeam 2+ Goals Probability":"0/4"},{"HomeTeam":"MNC","AwayTeam":"TOT","HomeTeam 2+ Goals Probability":"2/4","AwayTeam 2+ Goals Probability":"0/4"},{"HomeTeam":"MNC","AwayTeam":"WHU","HomeTeam 2+ Goals Probability":"4/4","AwayTeam 2+ Goals Probability":"0/4"},{"HomeTeam":"MNC","AwayTeam":"WOL","HomeTeam 2+ Goals Probability":"2/4","AwayTeam 2+ Goals Probability":"0/4"},{"HomeTeam":"MNU","AwayTeam":"ARS","HomeTeam 2+ Goals Probability":"3/4","AwayTeam 2+ Goals Probability":"1/4"},{"HomeTeam":"MNU","AwayTeam":"ASV","HomeTeam 2+ Goals Probability":"3/4","AwayTeam 2+ Goals Probability":"1/4"},{"HomeTeam":"MNU","AwayTeam":"BOU","HomeTeam 2+ Goals Probability":"2/4","AwayTeam 2+ Goals Probability":"0/4"},{"HomeTeam":"MNU","AwayTeam":"BRI","HomeTeam 2+ Goals Probability":"1/4","AwayTeam 2+ Goals Probability":"1/4"},{"HomeTeam":"MNU","AwayTeam":"BRN","HomeTeam 2+ Goals Probability":"2/4","AwayTeam 2+ Goals Probability":"0/4"},{"HomeTeam":"MNU","AwayTeam":"BUR","HomeTeam 2+ Goals Probability":"2/4","AwayTeam 2+ Goals Probability":"0/4"},{"HomeTeam":"MNU","AwayTeam":"CHE","HomeTeam 2+ Goals Probability":"2/4","AwayTeam 2+ Goals Probability":"0/4"},{"HomeTeam":"MNU","AwayTeam":"CRY","HomeTeam 2+ Goals Probability":"3/4","AwayTeam 2+ Goals Probability":"0/4"},{"HomeTeam":"MNU","AwayTeam":"EVE","HomeTeam 2+ Goals Probability":"2/4","AwayTeam 2+ Goals Probability":"1/4"},{"HomeTeam":"MNU","AwayTeam":"FOR","HomeTeam 2+ Goals Probability":"4/4","AwayTeam 2+ Goals Probability":"0/4"},{"HomeTeam":"MNU","AwayTeam":"FUL","HomeTeam 2+ Goals Probability":"3/4","AwayTeam 2+ Goals Probability":"0/4"},{"HomeTeam":"MNU","AwayTeam":"LEE","HomeTeam 2+ Goals Probability":"3/4","AwayTeam 2+ Goals Probability":"1/4"},{"HomeTeam":"MNU","AwayTeam":"LIV","HomeTeam 2+ Goals Probability":"0/4","AwayTeam 2+ Goals Probability":"1/4"},{"HomeTeam":"MNU","AwayTeam":"MNC","HomeTeam 2+ Goals Probability":"1/4","AwayTeam 2+ Goals Probability":"2/4"},{"HomeTeam":"MNU","AwayTeam":"NWC","HomeTeam 2+ Goals Probability":"0/4","AwayTeam 2+ Goals Probability":"2/4"},{"HomeTeam":"MNU","AwayTeam":"SUN","HomeTeam 2+ Goals Probability":"3/4","AwayTeam 2+ Goals Probability":"1/4"},{"HomeTeam":"MNU","AwayTeam":"TOT","HomeTeam 2+ Goals Probability":"3/4","AwayTeam 2+ Goals Probability":"2/4"},{"HomeTeam":"MNU","AwayTeam":"WHU","HomeTeam 2+ Goals Probability":"3/4","AwayTeam 2+ Goals Probability":"1/4"},{"HomeTeam":"MNU","AwayTeam":"WOL","HomeTeam 2+ Goals Probability":"3/4","AwayTeam 2+ Goals Probability":"0/4"},{"HomeTeam":"NWC","AwayTeam":"ARS","HomeTeam 2+ Goals Probability":"0/4","AwayTeam 2+ Goals Probability":"3/4"},{"HomeTeam":"NWC","AwayTeam":"ASV","HomeTeam 2+ Goals Probability":"4/4","AwayTeam 2+ Goals Probability":"2/4"},{"HomeTeam":"NWC","AwayTeam":"BOU","HomeTeam 2+ Goals Probability":"4/4","AwayTeam 2+ Goals Probability":"1/4"},{"HomeTeam":"NWC","AwayTeam":"BRI","HomeTeam 2+ Goals Probability":"2/4","AwayTeam 2+ Goals Probability":"3/4"},{"HomeTeam":"NWC","AwayTeam":"BRN","HomeTeam 2+ Goals Probability":"0/4","AwayTeam 2+ Goals Probability":"2/4"},{"HomeTeam":"NWC","AwayTeam":"BUR","HomeTeam 2+ Goals Probability":"3/4","AwayTeam 2+ Goals Probability":"0/4"},{"HomeTeam":"NWC","AwayTeam":"CHE","HomeTeam 2+ Goals Probability":"1/4","AwayTeam 2+ Goals Probability":"1/4"},{"HomeTeam":"NWC","AwayTeam":"CRY","HomeTeam 2+ Goals Probability":"2/4","AwayTeam 2+ Goals Probability":"1/4"},{"HomeTeam":"NWC","AwayTeam":"EVE","HomeTeam 2+ Goals Probability":"3/4","AwayTeam 2+ Goals Probability":"1/4"},{"HomeTeam":"NWC","AwayTeam":"FOR","HomeTeam 2+ Goals Probability":"2/4","AwayTeam 2+ Goals Probability":"0/4"},{"HomeTeam":"NWC","AwayTeam":"FUL","HomeTeam 2+ Goals Probability":"2/4","AwayTeam 2+ Goals Probability":"3/4"},{"HomeTeam":"NWC","AwayTeam":"LEE","HomeTeam 2+ Goals Probability":"3/4","AwayTeam 2+ Goals Probability":"0/4"},{"HomeTeam":"NWC","AwayTeam":"LIV","HomeTeam 2+ Goals Probability":"0/4","AwayTeam 2+ Goals Probability":"1/4"},{"HomeTeam":"NWC","AwayTeam":"MNC","HomeTeam 2+ Goals Probability":"1/4","AwayTeam 2+ Goals Probability":"3/4"},{"HomeTeam":"NWC","AwayTeam":"MNU","HomeTeam 2+ Goals Probability":"1/4","AwayTeam 2+ Goals Probability":"3/4"},{"HomeTeam":"NWC","AwayTeam":"SUN","HomeTeam 2+ Goals Probability":"2/4","AwayTeam 2+ Goals Probability":"1/4"},{"HomeTeam":"NWC","AwayTeam":"TOT","HomeTeam 2+ Goals Probability":"3/4","AwayTeam 2+ Goals Probability":"2/4"},{"HomeTeam":"NWC","AwayTeam":"WHU","HomeTeam 2+ Goals Probability":"3/4","AwayTeam 2+ Goals Probability":"0/4"},{"HomeTeam":"NWC","AwayTeam":"WOL","HomeTeam 2+ Goals Probability":"2/4","AwayTeam 2+ Goals Probability":"1/4"},{"HomeTeam":"SUN","AwayTeam":"ARS","HomeTeam 2+ Goals Probability":"1/4","AwayTeam 2+ Goals Probability":"3/4"},{"HomeTeam":"SUN","AwayTeam":"ASV","HomeTeam 2+ Goals Probability":"1/4","AwayTeam 2+ Goals Probability":"3/4"},{"HomeTeam":"SUN","AwayTeam":"BOU","HomeTeam 2+ Goals Probability":"2/4","AwayTeam 2+ Goals Probability":"3/4"},{"HomeTeam":"SUN","AwayTeam":"BRI","HomeTeam 2+ Goals Probability":"2/4","AwayTeam 2+ Goals Probability":"1/4"},{"HomeTeam":"SUN","AwayTeam":"BRN","HomeTeam 2+ Goals Probability":"0/4","AwayTeam 2+ Goals Probability":"1/4"},{"HomeTeam":"SUN","AwayTeam":"BUR","HomeTeam 2+ Goals Probability":"1/4","AwayTeam 2+ Goals Probability":"0/4"},{"HomeTeam":"SUN","AwayTeam":"CHE","HomeTeam 2+ Goals Probability":"1/4","AwayTeam 2+ Goals Probability":"1/4"},{"HomeTeam":"SUN","AwayTeam":"CRY","HomeTeam 2+ Goals Probability":"2/4","AwayTeam 2+ Goals Probability":"2/4"},{"HomeTeam":"SUN","AwayTeam":"EVE","HomeTeam 2+ Goals Probability":"2/4","AwayTeam 2+ Goals Probability":"1/4"},{"HomeTeam":"SUN","AwayTeam":"FOR","HomeTeam 2+ Goals Probability":"1/4","AwayTeam 2+ Goals Probability":"1/4"},{"HomeTeam":"SUN","AwayTeam":"FUL","HomeTeam 2+ Goals Probability":"1/4","AwayTeam 2+ Goals Probability":"2/4"},{"HomeTeam":"SUN","AwayTeam":"LEE","HomeTeam 2+ Goals Probability":"1/4","AwayTeam 2+ Goals Probability":"1/4"},{"HomeTeam":"SUN","AwayTeam":"LIV","HomeTeam 2+ Goals Probability":"2/4","AwayTeam 2+ Goals Probability":"4/4"},{"HomeTeam":"SUN","AwayTeam":"MNC","HomeTeam 2+ Goals Probability":"0/4","AwayTeam 2+ Goals Probability":"1/4"},{"HomeTeam":"SUN","AwayTeam":"MNU","HomeTeam 2+ Goals Probability":"2/4","AwayTeam 2+ Goals Probability":"2/4"},{"HomeTeam":"SUN","AwayTeam":"NWC","HomeTeam 2+ Goals Probability":"1/4","AwayTeam 2+ Goals Probability":"3/4"},{"HomeTeam":"SUN","AwayTeam":"TOT","HomeTeam 2+ Goals Probability":"2/4","AwayTeam 2+ Goals Probability":"4/4"},{"HomeTeam":"SUN","AwayTeam":"WHU","HomeTeam 2+ Goals Probability":"1/4","AwayTeam 2+ Goals Probability":"2/4"},{"HomeTeam":"SUN","AwayTeam":"WOL","HomeTeam 2+ Goals Probability":"1/4","AwayTeam 2+ Goals Probability":"2/4"},{"HomeTeam":"TOT","AwayTeam":"ARS","HomeTeam 2+ Goals Probability":"0/4","AwayTeam 2+ Goals Probability":"0/4"},{"HomeTeam":"TOT","AwayTeam":"ASV","HomeTeam 2+ Goals Probability":"3/4","AwayTeam 2+ Goals Probability":"1/4"},{"HomeTeam":"TOT","AwayTeam":"BOU","HomeTeam 2+ Goals Probability":"2/4","AwayTeam 2+ Goals Probability":"1/4"},{"HomeTeam":"TOT","AwayTeam":"BRI","HomeTeam 2+ Goals Probability":"1/4","AwayTeam 2+ Goals Probability":"2/4"},{"HomeTeam":"TOT","AwayTeam":"BRN","HomeTeam 2+ Goals Probability":"2/4","AwayTeam 2+ Goals Probability":"3/4"},{"HomeTeam":"TOT","AwayTeam":"BUR","HomeTeam 2+ Goals Probability":"2/4","AwayTeam 2+ Goals Probability":"2/4"},{"HomeTeam":"TOT","AwayTeam":"CHE","HomeTeam 2+ Goals Probability":"3/4","AwayTeam 2+ Goals Probability":"3/4"},{"HomeTeam":"TOT","AwayTeam":"CRY","HomeTeam 2+ Goals Probability":"2/4","AwayTeam 2+ Goals Probability":"0/4"},{"HomeTeam":"TOT","AwayTeam":"EVE","HomeTeam 2+ Goals Probability":"3/4","AwayTeam 2+ Goals Probability":"2/4"},{"HomeTeam":"TOT","AwayTeam":"FOR","HomeTeam 2+ Goals Probability":"1/4","AwayTeam 2+ Goals Probability":"0/4"},{"HomeTeam":"TOT","AwayTeam":"FUL","HomeTeam 2+ Goals Probability":"3/4","AwayTeam 2+ Goals Probability":"0/4"},{"HomeTeam":"TOT","AwayTeam":"LEE","HomeTeam 2+ Goals Probability":"0/4","AwayTeam 2+ Goals Probability":"2/4"},{"HomeTeam":"TOT","AwayTeam":"LIV","HomeTeam 2+ Goals Probability":"1/4","AwayTeam 2+ Goals Probability":"2/4"},{"HomeTeam":"TOT","AwayTeam":"MNC","HomeTeam 2+ Goals Probability":"1/4","AwayTeam 2+ Goals Probability":"3/4"},{"HomeTeam":"TOT","AwayTeam":"MNU","HomeTeam 2+ Goals Probability":"2/4","AwayTeam 2+ Goals Probability":"0/4"},{"HomeTeam":"TOT","AwayTeam":"NWC","HomeTeam 2+ Goals Probability":"2/4","AwayTeam 2+ Goals Probability":"2/4"},{"HomeTeam":"TOT","AwayTeam":"SUN","HomeTeam 2+ Goals Probability":"3/4","AwayTeam 2+ Goals Probability":"1/4"},{"HomeTeam":"TOT","AwayTeam":"WHU","HomeTeam 2+ Goals Probability":"2/4","AwayTeam 2+ Goals Probability":"1/4"},{"HomeTeam":"TOT","AwayTeam":"WOL","HomeTeam 2+ Goals Probability":"3/4","AwayTeam 2+ Goals Probability":"3/4"},{"HomeTeam":"WHU","AwayTeam":"ARS","HomeTeam 2+ Goals Probability":"2/4","AwayTeam 2+ Goals Probability":"2/4"},{"HomeTeam":"WHU","AwayTeam":"ASV","HomeTeam 2+ Goals Probability":"3/4","AwayTeam 2+ Goals Probability":"1/4"},{"HomeTeam":"WHU","AwayTeam":"BOU","HomeTeam 2+ Goals Probability":"2/4","AwayTeam 2+ Goals Probability":"2/4"},{"HomeTeam":"WHU","AwayTeam":"BRI","HomeTeam 2+ Goals Probability":"2/4","AwayTeam 2+ Goals Probability":"2/4"},{"HomeTeam":"WHU","AwayTeam":"BRN","HomeTeam 2+ Goals Probability":"3/4","AwayTeam 2+ Goals Probability":"0/4"},{"HomeTeam":"WHU","AwayTeam":"BUR","HomeTeam 2+ Goals Probability":"1/4","AwayTeam 2+ Goals Probability":"0/4"},{"HomeTeam":"WHU","AwayTeam":"CHE","HomeTeam 2+ Goals Probability":"2/4","AwayTeam 2+ Goals Probability":"2/4"},{"HomeTeam":"WHU","AwayTeam":"CRY","HomeTeam 2+ Goals Probability":"1/4","AwayTeam 2+ Goals Probability":"1/4"},{"HomeTeam":"WHU","AwayTeam":"EVE","HomeTeam 2+ Goals Probability":"3/4","AwayTeam 2+ Goals Probability":"0/4"},{"HomeTeam":"WHU","AwayTeam":"FOR","HomeTeam 2+ Goals Probability":"1/4","AwayTeam 2+ Goals Probability":"0/4"},{"HomeTeam":"WHU","AwayTeam":"FUL","HomeTeam 2+ Goals Probability":"3/4","AwayTeam 2+ Goals Probability":"2/4"},{"HomeTeam":"WHU","AwayTeam":"LEE","HomeTeam 2+ Goals Probability":"2/4","AwayTeam 2+ Goals Probability":"1/4"},{"HomeTeam":"WHU","AwayTeam":"LIV","HomeTeam 2+ Goals Probability":"4/4","AwayTeam 2+ Goals Probability":"2/4"},{"HomeTeam":"WHU","AwayTeam":"MNC","HomeTeam 2+ Goals Probability":"1/4","AwayTeam 2+ Goals Probability":"2/4"},{"HomeTeam":"WHU","AwayTeam":"MNU","HomeTeam 2+ Goals Probability":"2/4","AwayTeam 2+ Goals Probability":"2/4"},{"HomeTeam":"WHU","AwayTeam":"NWC","HomeTeam 2+ Goals Probability":"2/4","AwayTeam 2+ Goals Probability":"2/4"},{"HomeTeam":"WHU","AwayTeam":"SUN","HomeTeam 2+ Goals Probability":"3/4","AwayTeam 2+ Goals Probability":"2/4"},{"HomeTeam":"WHU","AwayTeam":"TOT","HomeTeam 2+ Goals Probability":"2/4","AwayTeam 2+ Goals Probability":"1/4"},{"HomeTeam":"WHU","AwayTeam":"WOL","HomeTeam 2+ Goals Probability":"2/4","AwayTeam 2+ Goals Probability":"0/4"},{"HomeTeam":"WOL","AwayTeam":"ARS","HomeTeam 2+ Goals Probability":"1/4","AwayTeam 2+ Goals Probability":"2/4"},{"HomeTeam":"WOL","AwayTeam":"ASV","HomeTeam 2+ Goals Probability":"1/4","AwayTeam 2+ Goals Probability":"3/4"},{"HomeTeam":"WOL","AwayTeam":"BOU","HomeTeam 2+ Goals Probability":"2/4","AwayTeam 2+ Goals Probability":"1/4"},{"HomeTeam":"WOL","AwayTeam":"BRI","HomeTeam 2+ Goals Probability":"2/4","AwayTeam 2+ Goals Probability":"1/4"},{"HomeTeam":"WOL","AwayTeam":"BRN","HomeTeam 2+ Goals Probability":"1/4","AwayTeam 2+ Goals Probability":"3/4"},{"HomeTeam":"WOL","AwayTeam":"BUR","HomeTeam 2+ Goals Probability":"3/4","AwayTeam 2+ Goals Probability":"0/4"},{"HomeTeam":"WOL","AwayTeam":"CHE","HomeTeam 2+ Goals Probability":"2/4","AwayTeam 2+ Goals Probability":"1/4"},{"HomeTeam":"WOL","AwayTeam":"CRY","HomeTeam 2+ Goals Probability":"1/4","AwayTeam 2+ Goals Probability":"0/4"},{"HomeTeam":"WOL","AwayTeam":"EVE","HomeTeam 2+ Goals Probability":"2/4","AwayTeam 2+ Goals Probability":"1/4"},{"HomeTeam":"WOL","AwayTeam":"FOR","HomeTeam 2+ Goals Probability":"1/4","AwayTeam 2+ Goals Probability":"1/4"},{"HomeTeam":"WOL","AwayTeam":"FUL","HomeTeam 2+ Goals Probability":"3/4","AwayTeam 2+ Goals Probability":"0/4"},{"HomeTeam":"WOL","AwayTeam":"LEE","HomeTeam 2+ Goals Probability":"1/4","AwayTeam 2+ Goals Probability":"1/4"},{"HomeTeam":"WOL","AwayTeam":"LIV","HomeTeam 2+ Goals Probability":"1/4","AwayTeam 2+ Goals Probability":"2/4"},{"HomeTeam":"WOL","AwayTeam":"MNC","HomeTeam 2+ Goals Probability":"1/4","AwayTeam 2+ Goals Probability":"2/4"},{"HomeTeam":"WOL","AwayTeam":"MNU","HomeTeam 2+ Goals Probability":"0/4","AwayTeam 2+ Goals Probability":"1/4"},{"HomeTeam":"WOL","AwayTeam":"NWC","HomeTeam 2+ Goals Probability":"3/4","AwayTeam 2+ Goals Probability":"2/4"},{"HomeTeam":"WOL","AwayTeam":"SUN","HomeTeam 2+ Goals Probability":"2/4","AwayTeam 2+ Goals Probability":"0/4"},{"HomeTeam":"WOL","AwayTeam":"TOT","HomeTeam 2+ Goals Probability":"1/4","AwayTeam 2+ Goals Probability":"1/4"},{"HomeTeam":"WOL","AwayTeam":"WHU","HomeTeam 2+ Goals Probability":"2/4","AwayTeam 2+ Goals Probability":"1/4"}];
+
+// Build lookup map: "HOME_AWAY" -> record
+const LOOKUP = {};
+RAW.forEach(r => { LOOKUP[`${r.HomeTeam}_${r.AwayTeam}`] = r; });
+
+const TEAMS = [...new Set(RAW.map(r => r.HomeTeam))].sort();
+
+const TEAM_NAMES = {
+  ARS:'Arsenal', ASV:'Aston Villa', BOU:'Bournemouth', BRI:'Brighton',
+  BRN:'Burnley', BUR:'Brentford', CHE:'Chelsea', CRY:'Crystal Palace',
+  EVE:'Everton', FOR:'Nottm Forest', FUL:'Fulham', LEE:'Leeds Utd',
+  LIV:'Liverpool', MNC:'Man City', MNU:'Man United', NWC:'Newcastle',
+  SUN:'Sunderland', TOT:'Tottenham', WHU:'West Ham', WOL:'Wolves'
+};
+
+function fullName(code) { return TEAM_NAMES[code] || code; }
+
+function parseFraction(s) {
+  const [n,d] = s.split('/').map(Number);
+  return d ? n / d : 0;
+}
+
+function tierClass(val) {
+  if (val === 0) return 'tier-0';
+  if (val <= 0.25) return 'tier-25';
+  if (val <= 0.50) return 'tier-50';
+  if (val <= 0.75) return 'tier-75';
+  return 'tier-100';
+}
+
+// ─── STATE ───────────────────────────────────────────────────────────────────
+const MAX = 10;
+let sortCol = 'fixture';
+let sortDir = 'asc';
+let originalRows = [];
+let currentRows = [];
+
+// ─── BUILD FIXTURE ROWS ───────────────────────────────────────────────────────
+function buildFixtureUI() {
+  const container = document.getElementById('fixtureRows');
+  container.innerHTML = '';
+  for (let i = 0; i < MAX; i++) {
+    const row = document.createElement('div');
+    row.className = 'fixture-row';
+    row.dataset.idx = i;
+
+    const homeOpts = TEAMS.map(t => `<option value="${t}">${fullName(t)} (${t})</option>`).join('');
+    const awayOpts = TEAMS.map(t => `<option value="${t}">${fullName(t)} (${t})</option>`).join('');
+
+    row.innerHTML = `
+      <span class="row-num">${i + 1}</span>
+      <select class="home-sel" data-idx="${i}">
+        <option value="">— Home Team —</option>
+        ${homeOpts}
+      </select>
+      <span class="vs-label">vs</span>
+      <select class="away-sel" data-idx="${i}">
+        <option value="">— Away Team —</option>
+        ${awayOpts}
+      </select>
+      <button class="clear-row" data-idx="${i}" title="Clear row">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+          <path d="M2 2l10 10M12 2L2 12" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+        </svg>
+      </button>
+    `;
+    container.appendChild(row);
+  }
+
+  container.addEventListener('change', onSelectChange);
+  container.addEventListener('click', e => {
+    const btn = e.target.closest('.clear-row');
+    if (!btn) return;
+    const idx = +btn.dataset.idx;
+    const row = container.querySelector(`.fixture-row[data-idx="${idx}"]`);
+    row.querySelector('.home-sel').value = '';
+    row.querySelector('.away-sel').value = '';
+    updateCounter();
+    updateAnalyseBtn();
+  });
+}
+
+function onSelectChange() { updateCounter(); updateAnalyseBtn(); }
+
+function getSelections() {
+  const rows = document.querySelectorAll('.fixture-row');
+  const result = [];
+  rows.forEach((row, i) => {
+    const home = row.querySelector('.home-sel').value;
+    const away = row.querySelector('.away-sel').value;
+    if (home && away) result.push({ fixture: i + 1, home, away });
+  });
+  return result;
+}
+
+function updateCounter() {
+  const filled = getSelections().length;
+  document.getElementById('filledCount').textContent = filled;
+}
+
+function updateAnalyseBtn() {
+  const btn = document.getElementById('analyseBtn');
+  btn.disabled = getSelections().length === 0;
+}
+
+// ─── ANALYSE ─────────────────────────────────────────────────────────────────
+document.getElementById('analyseBtn').addEventListener('click', () => {
+  const selections = getSelections();
+  if (!selections.length) return;
+
+  const results = [];
+  const notFound = [];
+
+  selections.forEach(({ fixture, home, away }) => {
+    if (home === away) { notFound.push(`F${fixture}: same team`); return; }
+    const key = `${home}_${away}`;
+    const rec = LOOKUP[key];
+    if (!rec) { notFound.push(`${fullName(home)} vs ${fullName(away)}`); return; }
+    const homeProb = parseFraction(rec['HomeTeam 2+ Goals Probability']);
+    const awayProb = parseFraction(rec['AwayTeam 2+ Goals Probability']);
+    results.push({
+      fixture,
+      home,
+      away,
+      homeFrac: rec['HomeTeam 2+ Goals Probability'],
+      awayFrac: rec['AwayTeam 2+ Goals Probability'],
+      homeProb,
+      awayProb,
+      combined: homeProb + awayProb
+    });
+  });
+
+  if (notFound.length) {
+    showToast(`Not found: ${notFound.join(', ')}`, true);
+  }
+
+  if (!results.length) {
+    document.getElementById('resultsSection').classList.remove('visible');
+    return;
+  }
+
+  originalRows = [...results];
+  currentRows = [...results];
+  sortCol = 'fixture'; sortDir = 'asc';
+  updateSortButtons();
+  renderTable();
+  document.getElementById('resultsSection').classList.add('visible');
+  document.getElementById('resultsSection').scrollIntoView({ behavior: 'smooth', block: 'start' });
+});
+
+// ─── SORT ─────────────────────────────────────────────────────────────────────
+document.getElementById('sortBtns').addEventListener('click', e => {
+  const btn = e.target.closest('.sort-btn');
+  if (!btn) return;
+  const col = btn.dataset.col;
+  if (sortCol === col) {
+    sortDir = sortDir === 'asc' ? 'desc' : 'asc';
+  } else {
+    sortCol = col;
+    sortDir = ['homeProb','awayProb','combined'].includes(col) ? 'desc' : 'asc';
+  }
+  btn.dataset.dir = sortDir;
+  updateSortButtons();
+  sortAndRender();
+});
+
+document.getElementById('resetGridBtn').addEventListener('click', () => {
+  currentRows = [...originalRows];
+  sortCol = 'fixture'; sortDir = 'asc';
+  updateSortButtons();
+  renderTable();
+  showToast('Grid reset to original order');
+});
+
+function updateSortButtons() {
+  document.querySelectorAll('.sort-btn').forEach(btn => {
+    const isActive = btn.dataset.col === sortCol;
+    btn.classList.toggle('active', isActive);
+    const dirEl = btn.querySelector('.sort-dir');
+    if (dirEl) dirEl.textContent = isActive ? (sortDir === 'asc' ? '↑' : '↓') : '↑';
+  });
+}
+
+function sortAndRender() {
+  const dir = sortDir === 'asc' ? 1 : -1;
+  currentRows = [...currentRows].sort((a, b) => {
+    let va = a[sortCol], vb = b[sortCol];
+    if (typeof va === 'string') return dir * va.localeCompare(vb);
+    return dir * (va - vb);
+  });
+  renderTable();
+}
+
+// ─── RENDER TABLE ─────────────────────────────────────────────────────────────
+function renderTable() {
+  const tbody = document.getElementById('resultsBody');
+  const empty = document.getElementById('emptyState');
+
+  if (!currentRows.length) {
+    tbody.innerHTML = '';
+    empty.classList.add('visible');
+    return;
+  }
+  empty.classList.remove('visible');
+
+  tbody.innerHTML = currentRows.map(r => `
+    <tr>
+      <td class="fixture-num">${r.fixture}</td>
+      <td>
+        <div class="matchup-cell">
+          <span class="team-name team-home">${fullName(r.home)}</span>
+          <span class="vs-chip">HOME</span>
+        </div>
+      </td>
+      <td class="prob-cell">
+        <div class="prob-bar-wrap">
+          <span class="prob-fraction">${r.homeFrac}</span>
+          <div class="bar-track">
+            <div class="bar-fill ${tierClass(r.homeProb)}" style="width:${r.homeProb * 100}%"></div>
+          </div>
+          <span class="prob-pct">${Math.round(r.homeProb * 100)}%</span>
+        </div>
+      </td>
+      <td>
+        <div class="matchup-cell">
+          <span class="team-name team-away">${fullName(r.away)}</span>
+          <span class="vs-chip" style="color:#8abcb0;background:rgba(138,188,176,0.1)">AWAY</span>
+        </div>
+      </td>
+      <td class="prob-cell">
+        <div class="prob-bar-wrap">
+          <span class="prob-fraction">${r.awayFrac}</span>
+          <div class="bar-track">
+            <div class="bar-fill ${tierClass(r.awayProb)}" style="width:${r.awayProb * 100}%"></div>
+          </div>
+          <span class="prob-pct">${Math.round(r.awayProb * 100)}%</span>
+        </div>
+      </td>
+      <td class="num">
+        <span style="font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:700;color:${combinedColor(r.combined)}">
+          ${Math.round(r.combined * 50)}%
+        </span>
+      </td>
+    </tr>
+  `).join('');
+}
+
+function combinedColor(v) {
+  if (v >= 1.5) return 'var(--accent)';
+  if (v >= 1.0) return 'var(--amber)';
+  if (v >= 0.5) return '#b0ccc0';
+  return 'var(--muted)';
+}
+
+// ─── CLEAR ALL ────────────────────────────────────────────────────────────────
+document.getElementById('clearAllBtn').addEventListener('click', () => {
+  document.querySelectorAll('.home-sel, .away-sel').forEach(s => s.value = '');
+  updateCounter();
+  updateAnalyseBtn();
+  document.getElementById('resultsSection').classList.remove('visible');
+  showToast('All fixtures cleared');
+});
+
+// ─── TOAST ────────────────────────────────────────────────────────────────────
+let toastTimer;
+function showToast(msg, isError = false) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'show' + (isError ? ' error' : '');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => { t.className = ''; }, 3000);
+}
+
+// ─── INIT ─────────────────────────────────────────────────────────────────────
+buildFixtureUI();
+</script>
+</body>
+</html>
